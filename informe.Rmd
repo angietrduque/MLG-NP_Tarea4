@@ -1,0 +1,354 @@
+---
+title: 'Tarea 4: Elección de $\lambda$: El riesgo de predicción'
+author: "Angie Rodríguez Duque & César Saavedra Vanegas"
+date: "Diciembre 04 de 2020"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+```{r warning=FALSE, include=F, paged.print=TRUE}
+suppressMessages(library(dplyr))
+suppressMessages(library(readxl))
+suppressMessages(library(tidyverse))
+suppressMessages(library(FactoMineR))
+suppressMessages(library(factoextra))
+suppressMessages(library(foreign))
+suppressMessages(library(corrplot))
+suppressMessages(library(polycor))
+suppressMessages(library(psych))
+suppressMessages(library(gplots))
+suppressMessages(library(gridExtra))
+suppressMessages(library(viridis))
+suppressMessages(library(lsr))
+suppressMessages(library(DescTools))
+suppressMessages(library(magrittr))
+suppressMessages(library(nlme))
+suppressMessages(library(MASS))
+suppressMessages(library(multilevel))
+suppressMessages(library(reshape))
+suppressMessages(library(homals))
+suppressMessages(library(GGally))
+suppressMessages(library(CCA))
+suppressMessages(library(plotly))
+suppressMessages(library(broom))
+suppressMessages(library(readr))
+suppressMessages(library(lubridate))
+suppressMessages(library(purrr))
+suppressMessages(library(VGAM))
+```
+
+# Actividad 1
+
+En los métodos de regresión no paramétrica los estimadores en general no son insesgados, por lo que la varianza del estimador no será suficiente para evaluar la incertidumbre inherente a estos métodos.
+
+De acuerdo a lo anterior, el presente documento tiene como objetivo responder a la pregunta: ¿Cuál valor de $\lambda$ sería una “buena elección”?, para ello se hará uso del estimador rice y del estimador UBRE.
+
+## 1. Base de datos 
+
+El conjunto de datos empleados en el presente documento proviene del repositorio de la base de datos de aprendizaje automático de UCI. Los datos originales consisten en variables del vino portugués "Vinho Verde" y cuenta con 1599 observaciones de vino rojo y 4898 observaciones de vino blanco. Para cada uno se evalúa la calidad del vino (Calificación entre 0 y 10) y 11 variables químicas (cuantitativas), que son las siguientes: Acidez fija, Acidez volátil, Ácido cítrico, Azúcar residual, Cloruros, Dióxido de azufre libre, Dióxido de azufre total, Densidad , PH, sulfatos y alcohol. Específicamente se hará uso de las observaciones procedentes del vino rojo.
+
+
+```{r warning=F, include=F, paged.print=T}
+# Cargar los datos
+Datos <- read.table("Datos.txt",header=T,sep = ",")
+Datos
+```
+
+## 2. Muestra aleatoria
+
+Se procede a seleccionar una muestra aleatoria de 60 vinos de la base de datos y se escoge las variables "Acidez fija" como respuesta y "pH" como predictora, cuyas descripciones son las siguientes:
+
++ **Acidez fija:** La mayoría de los ácidos involucrados con el vino o fijos o no volátiles (no se evaporan fácilmente)
+
+- **pH:** Describe qué tan ácido o básico es un vino en una escala de 0 (muy ácido) a 14 (muy básico); la mayoría de los vinos están entre 3-4 en la escala de pH.
+
+```{r warning=F, include=T, paged.print=T}
+# Tamaño de la muestra
+n <- 60
+# Seleccion de la muestra
+set.seed(12345)
+muestra <- Datos %>% sample_n(size=n,replace=FALSE)
+muestra <- muestra %>% arrange(pH)
+```
+
+### Representación gráfica
+
+A continuación se procede a graficar el comportamiento de ambas variables a partir del diagrama de dispersión:
+
+```{r message=TRUE, warning=TRUE, include=T, paged.print=T}
+x <- muestra  %>% dplyr::select(fixed.acidity, pH)
+```
+
+
+```{r fig.height=4, fig.width=8, warning=FALSE, include=T, paged.print=TRUE}
+ggplot() + geom_point(data = x, aes(x = pH, y = fixed.acidity)) + 
+  ylab("Acidez fija") + xlab("pH")
+```
+
+Mediante la gráfica de dispersión se puede interpretar un tipo de relación lineal negativa entre ambas variables de estudio, esto es, mientras mayor es el pH menor es la acidez fija, y mientras menor sea el pH del vino mayor será su acidez. Es por esta razón que en la enología, es decir, en la ciencia, técnica y arte de la producción del vino, los vinos tintos no se caracterizan por tener una acidez tan fuerte en comparación con los vinos blancos, pues el gusto amargo de algunos de sus taninos, se acentúa demasiado. 
+
+De acuerdo a lo anterior, el pH influye significativamente en la sensación de astringencia de los vinos tintos. Se observa fácilmente que el incremento del pH reduce la sensación de astringencia de los vinos o de los zumos de frutas tánicas. Este fenómeno se explica, al menos parcialmente, por la interacción de la acidez con la precipitación o la desnaturalización de las proteínas encargadas de la lubricación de la cavidad bucal en presencia de polifenoles.
+
+## 3. Estimación de la varianza $(\hat{\sigma}^{2})$
+
+En esta sección se estimará la varianza del modelo haciendo uso del estimador de Rice denotado como $\sigma^{2}_{R}$ y propuesto por John Rice en 1984. Su expresión es la siguiente:
+
+
+$$ \sigma^{2}_{R}=\displaystyle{\frac{1}{2(n-1)}\sum_{i=2}^{n}\left( y_{i}-y_{i-1}\right)^{2}}$$
+
+```{r warning=FALSE, include=F, paged.print=TRUE}
+n = nrow(x)
+y  = pull(x, fixed.acidity)
+sigma.rice <- 1/(2*(n-1))*sum((y - lag(y, k=1))^2, na.rm = T)
+sigma.rice
+```
+
+## 4. Elección de $\lambda$
+
+La elección del $\lambda$ más apropiado para la estimación de $\mu$ en el ejemplo de vino rojo se lleva a cabo mediante el estimador insesgado del riesgo, también conocido como **UBRE** (UnBiased Risk Estimator) el cual hace uso de series de cosenos.
+
+$$\hat{R}(\lambda)=\frac{1}{n}RSS(\lambda)+\frac{2}{n}\hat{\sigma}^{2}tr\left[S_{\lambda}\right]-\hat{\sigma}^{2}$$
+
+Donde: $\lambda \in (1,2,...,60)$ es el número de funciones $f_{i}$
+
+Deseamos entonces construir un dataframe tomando como variable respuesta "acidez fija" y como variable predictora "pH" donde f es la base de cosenos (CONS) que elegimos previamente.
+
+```{r warning=FALSE, include=F, paged.print=TRUE}
+base_cons <- function(x,j){
+  sqrt(2)*cos((j-1)*pi*x)
+}
+
+lambda.select <- function(x, lambda, salida=1){
+  df <-   dplyr::select(x, fixed.acidity)
+  hora_normada <- x$pH; i <- list(); y <- list()
+  
+  for (i in 2:lambda) {
+    y[[i]] <- base_cons(hora_normada, i)
+  }
+  
+  y <- data.frame(matrix(unlist(y), ncol = lambda-1))
+  df <-  bind_cols(df, y)
+
+  f.i <- df %>% 
+    dplyr::select(contains("x")) %>% 
+    colnames()
+  
+  lambda <- lambda %>%
+    tibble(lambda = . )
+  
+  f.i_sum <- paste(f.i, collapse = "+")
+  mdl_formula <- as.formula(paste("fixed.acidity", f.i_sum, sep = "~"))
+  
+  mdl <- lm(mdl_formula, data = df)
+
+  fitted <- predict(mdl) %>%
+    tibble(fitted = . )
+      
+  S = lm.influence(mdl)$hat
+  tr = sum(S)
+
+  UBRE <-  (1/n) * sum(resid(mdl)^2) + (2/n) * sigma.rice*tr - sigma.rice %>% 
+    tibble(ubre = .)
+  
+  CV <- (1/n) * sum(((residuals(mdl) / (1-S))^2)) %>%
+    tibble(cv = .)
+  
+  GCV <- (1/n) * ( sum(resid(mdl)^2) / (1 - (1/n) * tr)^2 ) %>% 
+    tibble(GCV = .)
+
+  R <- bind_cols(UBRE, CV, GCV, lambda)
+   
+  if(salida == 1) {
+    return(R)
+  } else {
+    return(fitted)
+  } 
+}
+
+all.R <- function(x, lambda){
+  R <- list()
+  for(i in 2:lambda){
+    R[[i]] <- lambda.select(x,i)
+  }
+  R <- as.data.frame(t(matrix(unlist(R), ncol = lambda-1)))
+  names(R) <- c("UBRE","CV","GCV","LAMBDA")
+  return(R)
+}
+```
+
+```{r warning=FALSE, include=F, paged.print=TRUE}
+lambda <- 10
+all.R <- all.R(x, lambda)
+all.R
+UBRE <- cbind(all.R$UBRE,all.R$LAMBDA)
+UBRE <- data.frame(UBRE)
+names(UBRE)[1] = "UBRE";names(UBRE)[2] = "LAMBDA"
+UBRE
+```
+
+Se imprimen los 10 primeros valores UBRE, los cuales generan el $\lambda$ optimo que minimiza el riesgo y que resulta se el mas adecuado para la estimación de $\mu$.
+
+```{r warning=FALSE, include=T, paged.print=TRUE}
+# Estimador UBRE
+UBRE
+```
+
+
+### Selección de $\lambda$
+
+Ahora, tenemos la estimación del comportamiento de la acidez fija de acuerdo al pH de los vinos usando series de Fourier con base de cosenos y con un $\lambda=3$, el cual fue seleccionado por medio del método UBRE. A partir de lo anterior, se puede decir que $\hat{\mu}_3$ es una buena aproximación a $\mu$.
+
+```{r fig.height=4, fig.width=8, message=TRUE, warning=TRUE}
+ggplot()+
+  geom_point(data = all.R, aes(x = LAMBDA, y = UBRE)) + 
+  labs(x =  expression(lambda), y = expression(hat(R)(lambda)))
+```
+
+Finalmente se observa mediante los graficos que el valor de $\lambda$ que minimiza las estimaciones segun el criterio de UBRE es un valor de $\lambda=3$.
+
+
+## 5. Estimación del modelo de regresión no paramétrica
+
+Tras haber elegido el valor optimo de $\lambda$ se prosigue a estimar el modelo de regresión no paramétrica. Los resultados obtenidos se presentan a continuación en la tabla que reune el valor del $\hat{R}(\lambda)$ para cada $\lambda$ de acuerdo al método UBRE.
+
+### Representación de $\mu_{3}(X)$
+
+Se observa el ajuste con $\lambda=3$ con los datos reales (puntos) y los datos ajustados por el modelo (línea) de la variable "Acidez fija" vs "pH".
+
+```{r warning=FALSE, include=F, paged.print=TRUE}
+lambda <- 3
+salida <- 2 # 1: Riesgo, 2: fitted values
+
+fitted <- lambda.select(x, lambda, salida)
+x <- bind_cols(x, fitted)
+x
+```
+
+```{r fig.height=4, fig.width=8}
+ggplot()+ geom_point(data = x, aes(x = pH, y = fixed.acidity)) +
+  geom_line(data = x, aes(x =pH, y = fitted), col="red") +
+  labs(subtitle = expression(lambda==3)) + 
+  ylab("Acidez fija") + xlab("pH")
+```
+
+Tenemos entonces la estimación del comportamiento de la acidez fija para el pH usando series de Fourier con base de cosenos y con un $\lambda=3$, que seleccionamos por medio del método UBRE, podríamos decir que $\mu_{3}$ es una buena aproximación a $\mu$.
+
+## 6. Interpretaciones
+
+A partir del modelo anterior se puede decir que:
+
++ Se evidencia que tanto la varianza como el sesgo tienden a 0 cuando n crece, esto es, cuando $n=60$ se obtiene una varianza de .
+
++ De acuerdo con los resultados de la tabla y de la figura, el valor óptimo de $\lambda$, basado en el estimador UBRE, es $\lambda=3$.
+
+- En otras palabras, basados en este indicador, elegiremos a $\mu_{3}$ como el mejor estimador de $\mu$ en el problema de vino tinto usando el estimador de cosenos.
+
+## 7. Ajuste de modelo lineal y comparación
+
+A continuación se realiza el ajuste del modelo lineal general
+
+```{r warning=FALSE, include=F, paged.print=TRUE}
+modelo <- lm(fixed.acidity ~ pH, data = muestra)
+summary(modelo)
+# ECM
+coeficientes <- coef(object = modelo)
+test_matrix <- model.matrix(fixed.acidity~ pH, data = muestra)
+predictores <- test_matrix[, names(coeficientes)]
+predicciones <- predictores %*% coeficientes
+validation_error <- mean((muestra$fixed.acidity - predicciones)^2)
+#Valores Predichos
+pHp <- predict(modelo)
+b0 <- round(modelo$coefficients[1],2)
+b1 <- round(modelo$coefficients[2],2)
+b0
+```
+
+
+
+```{r fig.height=4, fig.width=8, message=FALSE, warning=FALSE}
+qplot(x = pH, y = fixed.acidity,data = muestra, 
+      main = "", ylab = "Acidez fija",
+      xlab = "pH", geom = c("point"),
+      method = "lm") + geom_line(aes(y=pHp), lwd = 1.2, color = 4)
+```
+
+## 8. Comparación de modelos
+
+Finalmente buscamos realizar la comparación entre modelos para escoger el que seria el de mejor ajuste, esto mediante el error cuadrático medio (ECM) y esto da como resultado la figura que se presenta a continuación. 
+
+```{r warning=FALSE, include=F, paged.print=TRUE}
+Acidez.fija <- pull(x, var = fixed.acidity)
+MSE.Taylor <- (1/60) * sum((Acidez.fija - fitted)^2)
+MSE.Taylor
+validation_error <- mean((muestra$fixed.acidity - predicciones)^2)
+validation_error
+
+ajuste <- c("Modelo no paramétrico", "Modelo lineal")
+MSE <- c(MSE.Taylor, validation_error)
+comparacion <- data.frame(Ajuste = ajuste, MSE = MSE)
+```
+
+```{r warning=FALSE, include=F, paged.print=TRUE}
+ECM <- ggplot(data = comparacion, aes(x = reorder(x = Ajuste, X = MSE), 
+                                        y = MSE, color = Ajuste, 
+                                        label = round(MSE,2))) + 
+  geom_point(size = 10) + 
+  geom_text(color = "white", size = 2) + 
+  labs(x = "", y = "ECM") + 
+  coord_flip() + theme(legend.position = "none") +
+  labs(title = "") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r fig.height=3, fig.width=6, message=FALSE, warning=FALSE}
+ECM
+```
+
+Después de graficar el modelo lineal, se procede a realizar la comparación entre el modelo de regresión no paramétrica y el modelo lineal:
+
++ Respecto a la fuerza de la relación, se evalúa qué tan cerca se ajustan los datos a cada uno de los modelos para estimar la fuerza de la relación entre la variable predictora pH (X) y la variable de respuesta Acidez fija (Y). Se evidencia una relación fuerte en ambos casos, sin embargo la relación es notoriamente más significativa en el modelo de regresión no paramétrica, donde los puntos correspondientes a los vinos se adhieren mucho más a la línea de regresión ajustada  por lo cual el método no paramétrico modelará con mayor precisión nuestros datos.
+
+Esto se verifica mediante el calculo del error cuadrático medio, como se observa en la figura anterior, donde el modelo no paramétrico obtiene un $MSE=1.49$ y en contraste al $MSE=1.54$ obtenido para el modelo lineal, lo cual permite concluir que este seria el modelo que se ajusta mejor a nuestros datos. 
+
+# Actividad 2
+
+## 1. Base de datos 
+
+El conjunto de datos empleados en el presente documento proviene del repositorio de la base de datos de aprendizaje automático de UCI. Los datos originales consisten en variables del vino portugués "Vinho Verde" y cuenta con 1599 observaciones de vino rojo y 4898 observaciones de vino blanco. Para cada uno se evalúa la calidad del vino (Calificación entre 0 y 10) y 11 variables químicas (cuantitativas), que son las siguientes: Acidez fija, Acidez volátil, Ácido cítrico, Azúcar residual, Cloruros, Dióxido de azufre libre, Dióxido de azufre total, Densidad , PH, sulfatos y alcohol. Específicamente se hará uso de las observaciones procedentes del vino rojo.
+
+
+```{r warning=F, include=F, paged.print=T}
+# Cargar los datos
+library(readxl)
+Datos2 <- read_excel("OzonoCompartir2019.xlsx")
+Datos2
+```
+
+## 2. Curva de regresión
+
+Se seleccionan cinco días consecutivos (de lunes a viernes) y se construye la curva de regresión para cada día, usando seis funciones de la base de cosenos.
+
+## 3. Datos funcionales
+
+Asuma que cada curva es la observación del día correspondiente. Así que ahora usted tiene cinco datos, uno para cada día. A este tipo de datos se les llama Datos Funcionales (Ramsay y Silverman 2005, Ferraty y Vieu 2006, Ramsay, Spencer y Hooker 2010, Ramsay, Wickham, Graves y Hooker 2011)
+
+## 4. Representación gráfica
+
+Represente sus cinco datos funcionales en un solo gráfico. Luego, calcule e interprete la media y la desviación estándar funcionales de estos cinco datos. Represente esta curvas en el mismo gráfico
+
+# Bibliografía
+
++ Cortez, P., Cerdeira, A., Almeida, F., Matos, T., & Reis, J. (2009). Modeling wine preferences by data mining from physicochemical properties. Decision Support Systems, 47(4), 547-553.
+
+- Eubank (1999), Nonparametric Regression and Spline Smoothing, second edn, Marcel Dekker, New York, NY
+
++ Olaya, J. (2012). Métodos de Regresión No Paramétrica. Universidad del Valle.
+
+- R Core Team. (2013). R: A Language and Environment for Statistical Computing. R Foundation for Statistical Computing. http://www.r-project.org/
+
+
+
+
+
