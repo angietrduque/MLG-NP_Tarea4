@@ -152,7 +152,7 @@ Datos2
 x <- Datos2  %>% 
   dplyr::select(`Fecha & Hora`, Datos2$O3) %>% 
   mutate(dia = day(`Fecha & Hora`)) %>%
-  filter(dia %in% c(9,10,11,12,13)) %>%  
+  filter(dia %in% c(22,23,24,25,26)) %>%  
   group_by(dia) %>%
   
   mutate(hora = row_number()) %>% 
