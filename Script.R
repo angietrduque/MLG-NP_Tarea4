@@ -20,6 +20,7 @@ suppressMessages(library(readr))
 suppressMessages(library(lubridate))
 suppressMessages(library(purrr))
 suppressMessages(library(VGAM))
+#https://rpubs.com/juliantellez/Eleccion-de-lambda-regresion-no-parametrica
 #----------------------------------------------------------------------------------------#
 setwd("/Users/cesar.saavedra/Documents/GitHub/MLG-NP_Tarea4")
 #----------------------------------------------------------------------------------------#
@@ -143,16 +144,24 @@ library(dplyr)
 library(lubridate)
 library(ggplot2)
 library(purrr)
-
+library(readr)
+# https://rpubs.com/juliantellez/estimacion-series-de-furier
+#----------------------------------------------------------------------------------------#
 # Cargar los datos
-Datos2 <- read_excel("OzonoCompartir2019.xlsx")
-Datos2  
-
+Datos2  <- read_delim("OzonoCompartir2019.csv", 
+                      ";", escape_double = FALSE, 
+                      col_types = cols(`Fecha & Hora` = col_datetime(format = "%m/%d/%Y %H:%M"), 
+                      O3 = col_number(), Temperatura = col_number(), Humedad = col_number(), 
+                      RadiacionSolar = col_number()), 
+                      locale = locale(decimal_mark = ",", grouping_mark = "."), 
+                      trim_ws = TRUE)
+Datos2
+names(Datos2)
 
 x <- Datos2  %>% 
-  dplyr::select(`Fecha & Hora`, Datos2$O3) %>% 
+  dplyr::select(`Fecha & Hora`, O3) %>% 
   mutate(dia = day(`Fecha & Hora`)) %>%
-  filter(dia %in% c(22,23,24,25,26)) %>%  
+  filter(dia %in% c(5,6,7,8,9)) %>%  
   group_by(dia) %>%
   
   mutate(hora = row_number()) %>% 
@@ -160,6 +169,7 @@ x <- Datos2  %>%
   
   mutate(hora_normada = (2*hora - 1)/(2*24)) %>%
   mutate(dia = as.factor(dia))
+x
 #----------------------------------------------------------------------------------------#
 ggplot() +
   geom_line(data = x, aes(x = hora_normada, y = O3, color = dia))+
@@ -185,6 +195,7 @@ for (i in 2:lambda) {
 
 y <- data.frame(matrix(unlist(y), ncol = lambda-1)) # Variables predictoras
 df <-  bind_cols(df, y)
+df
 #----------------------------------------------------------------------------------------#
 lm_grupo <- function(x){
   model <- lm(O3 ~  X1+X2+X3+X4+X5+X6, data = x)
@@ -209,8 +220,7 @@ ggplot()+
   geom_line(data = df, aes(x =hora_normada, y = fitted)) +
   labs(y = expression(O[3])) +
   labs(title = "Estimacion con base de cosenos") +
-  labs(subtitle = expression(lambda==)) +
+  labs(subtitle = expression(lambda==3)) +
   facet_wrap(~dia)
-
 
 #----------------------------------------------------------------------------------------#
