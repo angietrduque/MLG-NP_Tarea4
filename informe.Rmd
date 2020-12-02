@@ -3,9 +3,9 @@ title: 'Tarea 4: Elección de $\lambda$: El riesgo de predicción'
 author: "Angie Rodríguez Duque & César Saavedra Vanegas"
 date: "Diciembre 04 de 2020"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 ```{r warning=FALSE, include=F, paged.print=TRUE}
 suppressMessages(library(dplyr))
@@ -82,7 +82,7 @@ x <- muestra  %>% dplyr::select(fixed.acidity, pH)
 
 
 ```{r fig.height=4, fig.width=8, warning=FALSE, include=T, paged.print=TRUE}
-ggplot() + geom_point(data = x, aes(x = pH, y = fixed.acidity)) + 
+ggplot() + geom_point(data = x, aes(x = pH, y = fixed.acidity), col="blue") + 
   ylab("Acidez fija") + xlab("pH")
 ```
 
@@ -181,31 +181,52 @@ all.R <- function(x, lambda){
 lambda <- 10
 all.R <- all.R(x, lambda)
 all.R
-UBRE <- cbind(all.R$UBRE,all.R$LAMBDA)
-UBRE <- data.frame(UBRE)
-names(UBRE)[1] = "UBRE";names(UBRE)[2] = "LAMBDA"
-UBRE
 ```
 
 Se imprimen los 10 primeros valores UBRE, los cuales generan el $\lambda$ optimo que minimiza el riesgo y que resulta se el mas adecuado para la estimación de $\mu$.
 
 ```{r warning=FALSE, include=T, paged.print=TRUE}
-# Estimador UBRE
-UBRE
+# Estimador UBRE, CV y GCV
+all.R
 ```
 
 
 ### Selección de $\lambda$
 
-Ahora, tenemos la estimación del comportamiento de la acidez fija de acuerdo al pH de los vinos usando series de Fourier con base de cosenos y con un $\lambda=3$, el cual fue seleccionado por medio del método UBRE. A partir de lo anterior, se puede decir que $\hat{\mu}_3$ es una buena aproximación a $\mu$.
+Ahora, tenemos la estimación del comportamiento de la acidez fija de acuerdo al pH de los vinos usando series de Fourier con base de cosenos y con un $\lambda=3$, el cual fue seleccionado por medio de los métodos UBRE, CV, GCV. A partir de lo anterior, se puede decir que $\hat{\mu}_3$ es una buena aproximación a $\mu$.
 
-```{r fig.height=4, fig.width=8, message=TRUE, warning=TRUE}
-ggplot()+
-  geom_point(data = all.R, aes(x = LAMBDA, y = UBRE)) + 
-  labs(x =  expression(lambda), y = expression(hat(R)(lambda)))
+```{r,, include=F}
+plot1 <- ggplot()+
+         geom_point(data = all.R, aes(x = LAMBDA, y = UBRE), col="blue") +
+         labs(x =  expression(lambda), y = expression(hat(R)(lambda)))
+
+plot2 <- ggplot()+
+         geom_point(data = all.R, aes(x = LAMBDA, y = CV), col="red") +
+         labs(x =  expression(lambda), y = expression(hat(CV)(lambda)))
+
+plot3 <- ggplot()+
+         geom_point(data = all.R, aes(x = LAMBDA, y = GCV), col="black") +
+         labs(x =  expression(lambda), y = expression(hat(GCV)(lambda)))
 ```
 
-Finalmente se observa mediante los graficos que el valor de $\lambda$ que minimiza las estimaciones segun el criterio de UBRE es un valor de $\lambda=3$.
+
+```{r fig.height=4, fig.width=10, message=TRUE, warning=TRUE}
+grid.arrange(plot1, plot2, plot3, nrow=1)
+```
+
+Finalmente se observa mediante los graficos que el valor de $\lambda$ que minimiza las estimaciones segun los criterios son:
+
+| Estimador | Mejor Lambda |
+|-----------|--------------|
+| UBRE      | 3            |
+| CV        | 3            |
+| GCV       | 3            |
+
+Para los cuales los resultados son los siguientes:
+
+| UBRE      | CV       | GCV      | Lambda |
+|-----------|----------|----------|--------|
+| 0.1963344 | 1.629180 | 1.649753 | 3      |
 
 
 ## 5. Estimación del modelo de regresión no paramétrica
@@ -226,13 +247,13 @@ x
 ```
 
 ```{r fig.height=4, fig.width=8}
-ggplot()+ geom_point(data = x, aes(x = pH, y = fixed.acidity)) +
-  geom_line(data = x, aes(x =pH, y = fitted), col="red") +
+ggplot()+ geom_point(data = x, aes(x = pH, y = fixed.acidity),col="blue") +
+  geom_line(data = x, aes(x =pH, y = fitted), col="green") +
   labs(subtitle = expression(lambda==3)) + 
   ylab("Acidez fija") + xlab("pH")
 ```
 
-Tenemos entonces la estimación del comportamiento de la acidez fija para el pH usando series de Fourier con base de cosenos y con un $\lambda=3$, que seleccionamos por medio del método UBRE, podríamos decir que $\mu_{3}$ es una buena aproximación a $\mu$.
+Tenemos entonces la estimación del comportamiento de la acidez fija para el pH usando series de Fourier con base de cosenos y con un $\lambda=3$, que seleccionamos por medio del método UBRE, CV, GCV, podríamos decir que $\mu_{3}$ es una buena aproximación a $\mu$.
 
 ## 6. Interpretaciones
 
@@ -266,7 +287,7 @@ b0
 
 
 
-```{r fig.height=4, fig.width=8, message=FALSE, warning=FALSE}
+```{r fig.height=4, fig.width=8, message=FALSE, warning=FALSE, include=F}
 qplot(x = pH, y = fixed.acidity,data = muestra, 
       main = "", ylab = "Acidez fija",
       xlab = "pH", geom = c("point"),
