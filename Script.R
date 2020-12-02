@@ -150,7 +150,7 @@ library(readr)
 # Cargar los datos
 Datos2  <- read_delim("OzonoCompartir2019.csv", 
                       ";", escape_double = FALSE, 
-                      col_types = cols(`Fecha & Hora` = col_datetime(format = "%m/%d/%Y %H:%M"), 
+                      col_types = cols(`Fecha & Hora` = col_datetime(format = "%d/%m/%Y %H:%M"), 
                       O3 = col_number(), Temperatura = col_number(), Humedad = col_number(), 
                       RadiacionSolar = col_number()), 
                       locale = locale(decimal_mark = ",", grouping_mark = "."), 
@@ -172,11 +172,11 @@ x <- Datos2  %>%
 x
 #----------------------------------------------------------------------------------------#
 ggplot() +
-  geom_line(data = x, aes(x = hora_normada, y = O3, color = dia))+
+  geom_line(data = x, aes(x = hora, y = O3, color = dia))+
   labs(y = expression(O[3]))
 
 ggplot()+
-  geom_point(data = x, aes(x = hora_normada, y = O3)) +
+  geom_point(data = x, aes(x = hora, y = O3)) +
   labs(y = expression(O[3]))+ facet_wrap(~dia)
 #----------------------------------------------------------------------------------------#
 base_cons <- function(x,j){
@@ -186,7 +186,7 @@ base_cons <- function(x,j){
 df <-  x %>% 
   dplyr::select(O3) 
 
-hora_normada <- x$hora_normada; lambda <- 7; i <- NULL; aux <- NULL; y <- NULL
+hora_normada <- x$hora; lambda <- 7; i <- NULL; aux <- NULL; y <- NULL
 
 for (i in 2:lambda) {
   aux <- base_cons(hora_normada, i)
