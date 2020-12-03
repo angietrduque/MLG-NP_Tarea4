@@ -155,16 +155,13 @@ Datos2  <- read_delim("OzonoCompartir2019.csv",
                       RadiacionSolar = col_number()), 
                       locale = locale(decimal_mark = ",", grouping_mark = "."), 
                       trim_ws = TRUE)
-
-Datos2 <- read_delim("ozono.xls", ";", escape_double = FALSE, 
-                     col_types = cols(`Fecha & Hora` = col_datetime(format = "%d/%m/%Y %H:%M")), 
-                     trim_ws = TRUE)
+Datos2
 names(Datos2)
 
 x <- Datos2  %>% 
   dplyr::select(`Fecha & Hora`, O3) %>% 
   mutate(dia = day(`Fecha & Hora`)) %>%
-  filter(dia %in% c(8,9,10,11,12)) %>%  
+  filter(dia %in% c(5,6,7,8,9)) %>%  
   group_by(dia) %>%
   
   mutate(hora = row_number()) %>% 
@@ -173,7 +170,6 @@ x <- Datos2  %>%
   mutate(hora_normada = (2*hora - 1)/(2*24)) %>%
   mutate(dia = as.factor(dia))
 x
-
 #----------------------------------------------------------------------------------------#
 ggplot() +
   geom_line(data = x, aes(x = hora, y = O3, color = dia))+
@@ -182,16 +178,6 @@ ggplot() +
 ggplot()+
   geom_point(data = x, aes(x = hora, y = O3)) +
   labs(y = expression(O[3]))+ facet_wrap(~dia)
-
-par(mfrow=c(2,3))
-plot(x=x$hora[1:23],y=x$O3[1:23], xlab="Hora", ylab="O3", main="Dia 8")
-plot(x=x$hora[24:46],y=x$O3[24:46], xlab="Hora", ylab="O3", main="Dia 9")
-plot(x=x$hora[47:69],y=x$O3[47:69], xlab="Hora", ylab="O3", main="Dia 10")
-plot(x=x$hora[70:92],y=x$O3[70:92], xlab="Hora", ylab="O3", main="Dia 11")
-plot(x=x$hora[93:115],y=x$O3[93:115], xlab="Hora", ylab="O3", main="Dia 12")
-#----------------------------------------------------------------------------------------#
-
-
 #----------------------------------------------------------------------------------------#
 base_cons <- function(x,j){
   sqrt(2)*cos((j-1)*pi*x)
@@ -200,7 +186,7 @@ base_cons <- function(x,j){
 df <-  x %>% 
   dplyr::select(O3) 
 
-hora_normada <- x$hora; lambda <- 7; i <- NULL; aux <- NULL; y <- NULL
+hora_normada <- x$hora; lambda <- 6; i <- NULL; aux <- NULL; y <- NULL
 
 for (i in 2:lambda) {
   aux <- base_cons(hora_normada, i)
