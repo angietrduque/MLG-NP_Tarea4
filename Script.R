@@ -148,13 +148,9 @@ library(readr)
 # https://rpubs.com/juliantellez/estimacion-series-de-furier
 #----------------------------------------------------------------------------------------#
 # Cargar los datos
-Datos2  <- read_delim("OzonoCompartir2019.csv", 
-                      ";", escape_double = FALSE, 
-                      col_types = cols(`Fecha & Hora` = col_datetime(format = "%d/%m/%Y %H:%M"), 
-                      O3 = col_number(), Temperatura = col_number(), Humedad = col_number(), 
-                      RadiacionSolar = col_number()), 
-                      locale = locale(decimal_mark = ",", grouping_mark = "."), 
-                      trim_ws = TRUE)
+Datos2 <- read_delim("ozono.xls", ";", escape_double = FALSE, 
+                     col_types = cols(`Fecha & Hora` = col_datetime(format = "%d/%m/%Y %H:%M")), 
+                     trim_ws = TRUE)
 Datos2
 names(Datos2)
 
@@ -171,13 +167,12 @@ x <- Datos2  %>%
   mutate(dia = as.factor(dia))
 x
 #----------------------------------------------------------------------------------------#
-ggplot() +
-  geom_line(data = x, aes(x = hora, y = O3, color = dia))+
-  labs(y = expression(O[3]))
-
-ggplot()+
-  geom_point(data = x, aes(x = hora, y = O3)) +
-  labs(y = expression(O[3]))+ facet_wrap(~dia)
+par(mfrow=c(2,3))
+plot(x=x$hora[1:23],y=x$O3[1:23], xlab="Hora", ylab="O3", main="Dia 8")
+plot(x=x$hora[24:46],y=x$O3[24:46], xlab="Hora", ylab="O3", main="Dia 9")
+plot(x=x$hora[47:69],y=x$O3[47:69], xlab="Hora", ylab="O3", main="Dia 10")
+plot(x=x$hora[70:92],y=x$O3[70:92], xlab="Hora", ylab="O3", main="Dia 11")
+plot(x=x$hora[93:115],y=x$O3[93:115], xlab="Hora", ylab="O3", main="Dia 12")
 #----------------------------------------------------------------------------------------#
 base_cons <- function(x,j){
   sqrt(2)*cos((j-1)*pi*x)
@@ -198,7 +193,7 @@ df <-  bind_cols(df, y)
 df
 #----------------------------------------------------------------------------------------#
 lm_grupo <- function(x){
-  model <- lm(O3 ~  X1+X2+X3+X4+X5+X6, data = x)
+  model <- lm(O3 ~  X1+X2+X3+X4+X5, data = x)
   fitted_NO2 <- predict(model) %>% 
     as_tibble
   bind_cols(x, fitted_NO2)
