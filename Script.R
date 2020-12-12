@@ -23,6 +23,7 @@ suppressMessages(library(VGAM))
 #https://rpubs.com/juliantellez/Eleccion-de-lambda-regresion-no-parametrica
 #----------------------------------------------------------------------------------------#
 setwd("/Users/cesar.saavedra/Documents/GitHub/MLG-NP_Tarea4")
+setwd("C:/Users/Angie Rodríguez/Documents/GitHub/MLG-NP_Tarea4")
 #----------------------------------------------------------------------------------------#
 Datos <- read.table("Datos.txt",header=T,sep = ",")
 Datos
