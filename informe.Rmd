@@ -3,9 +3,9 @@ title: 'Tarea 4: Elección de $\lambda$: El riesgo de predicción'
 author: "Angie Rodríguez Duque & César Saavedra Vanegas"
 date: "Diciembre 04 de 2020"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 ```{r warning=FALSE, include=F, paged.print=TRUE}
 suppressMessages(library(dplyr))
@@ -342,11 +342,31 @@ El conjunto de datos empleados en el presente documento proviene del repositorio
 
 ```{r warning=F, include=F, paged.print=T}
 # Cargar los datos
-library(readxl)
-Datos2 <- read_excel("OzonoCompartir2019.xlsx")
+Datos2 <- read_delim("ozono.xls", ";", escape_double = FALSE, 
+                     col_types = cols(`Fecha & Hora` = col_datetime(format = "%d/%m/%Y %H:%M")), 
+                     trim_ws = TRUE)
 Datos2
+names(Datos2)
 ```
 
+```{r warning=FALSE, include=T, paged.print=TRUE}
+head(Datos2)
+```
+
+```{r warning=F, include=F, paged.print=T}
+x <- Datos2  %>% 
+  dplyr::select(`Fecha & Hora`, O3) %>% 
+  mutate(dia = day(`Fecha & Hora`)) %>%
+  filter(dia %in% c(5,6,7,8,9)) %>%  
+  group_by(dia) %>%
+  
+  mutate(hora = row_number()) %>% 
+  ungroup() %>%
+  
+  mutate(hora_normada = (2*hora - 1)/(2*24)) %>%
+  mutate(dia = as.factor(dia))
+x
+```
 ## 2. Curva de regresión
 
 Se seleccionan cinco días consecutivos (de lunes a viernes) y se construye la curva de regresión para cada día, usando seis funciones de la base de cosenos.
@@ -357,7 +377,20 @@ Asuma que cada curva es la observación del día correspondiente. Así que ahora
 
 ## 4. Representación gráfica
 
-Represente sus cinco datos funcionales en un solo gráfico. Luego, calcule e interprete la media y la desviación estándar funcionales de estos cinco datos. Represente esta curvas en el mismo gráfico
+Represente sus cinco datos funcionales en un solo gráfico. Luego, calcule e interprete la media y la desviación estándar funcionales de estos cinco datos. Represente esta curvas en el mismo gráfico.
+
+Finalmente con el nuevo dataframe df podemos generar un gr�fico donde se puedan observar los datos reales (puntos) y los datos ajustados por el modelo de la variable $O^{3}$ vs hora_normada para cada uno de los d�as.
+
+```{r warning=FALSE, include=T, paged.print=TRUE}
+par(mfrow=c(2,3))
+plot(x=x$hora[1:23],y=x$O3[1:23], xlab="Hora", ylab="O3", main="Dia 8")
+plot(x=x$hora[24:46],y=x$O3[24:46], xlab="Hora", ylab="O3", main="Dia 9")
+plot(x=x$hora[47:69],y=x$O3[47:69], xlab="Hora", ylab="O3", main="Dia 10")
+plot(x=x$hora[70:92],y=x$O3[70:92], xlab="Hora", ylab="O3", main="Dia 11")
+plot(x=x$hora[93:115],y=x$O3[93:115], xlab="Hora", ylab="O3", main="Dia 12")
+```
+
+A partir de la figura anterior, se tiene que, la estimaci�n del comportamiento de $O^{3}$ para los d�as 8,9,10,11 y 12 usando series de Furier con base de cosenos y con un $\lambda=3$, podr�amos decir que $\hat{\mu}_{3}$ es una buena aproximaci�n a $\mu$.
 
 # Bibliografía
 
