@@ -3,9 +3,9 @@ title: 'Tarea 4: Elección de $\lambda$: El riesgo de predicción'
 author: "Angie Rodríguez Duque & César Saavedra Vanegas"
 date: "Diciembre 04 de 2020"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 ```{r warning=FALSE, include=F, paged.print=TRUE}
 suppressMessages(library(dplyr))
@@ -231,7 +231,7 @@ Para los cuales los resultados son los siguientes:
 
 ## 5. Estimación del modelo de regresión no paramétrica
 
-Tras haber elegido el valor optimo de $\lambda$ se prosigue a estimar el modelo de regresión no paramétrica. Los resultados obtenidos se presentan a continuación en la tabla que reune el valor del $\hat{R}(\lambda)$ para cada $\lambda$ de acuerdo al método UBRE.
+Tras haber elegido el valor optimo de $\lambda$ se prosigue a estimar el modelo de regresión no paramétrica. Los resultados obtenidos se presentan a continuación en la tabla que reune el valor del $\hat{R}(\lambda)$ para cada $\lambda$ de acuerdo a los métodos UBRE, CV, GCV.
 
 ### Representación de $\mu_{3}(X)$
 
@@ -261,83 +261,15 @@ A partir del modelo anterior se puede decir que:
 
 + Se evidencia que tanto la varianza como el sesgo tienden a 0 cuando n crece, esto es, cuando $n=60$ se obtiene una varianza de .
 
-+ De acuerdo con los resultados de la tabla y de la figura, el valor óptimo de $\lambda$, basado en el estimador UBRE, es $\lambda=3$.
++ De acuerdo con los resultados de la tabla y de la figura, el valor óptimo de $\lambda$, basado en los estimadores  UBRE, CV, GCV, es $\lambda=3$.
 
 - En otras palabras, basados en este indicador, elegiremos a $\mu_{3}$ como el mejor estimador de $\mu$ en el problema de vino tinto usando el estimador de cosenos.
-
-## 7. Ajuste de modelo lineal y comparación
-
-A continuación se realiza el ajuste del modelo lineal general
-
-```{r warning=FALSE, include=F, paged.print=TRUE}
-modelo <- lm(fixed.acidity ~ pH, data = muestra)
-summary(modelo)
-# ECM
-coeficientes <- coef(object = modelo)
-test_matrix <- model.matrix(fixed.acidity~ pH, data = muestra)
-predictores <- test_matrix[, names(coeficientes)]
-predicciones <- predictores %*% coeficientes
-validation_error <- mean((muestra$fixed.acidity - predicciones)^2)
-#Valores Predichos
-pHp <- predict(modelo)
-b0 <- round(modelo$coefficients[1],2)
-b1 <- round(modelo$coefficients[2],2)
-b0
-```
-
-
-
-```{r fig.height=4, fig.width=8, message=FALSE, warning=FALSE, include=F}
-qplot(x = pH, y = fixed.acidity,data = muestra, 
-      main = "", ylab = "Acidez fija",
-      xlab = "pH", geom = c("point"),
-      method = "lm") + geom_line(aes(y=pHp), lwd = 1.2, color = 4)
-```
-
-## 8. Comparación de modelos
-
-Finalmente buscamos realizar la comparación entre modelos para escoger el que seria el de mejor ajuste, esto mediante el error cuadrático medio (ECM) y esto da como resultado la figura que se presenta a continuación. 
-
-```{r warning=FALSE, include=F, paged.print=TRUE}
-Acidez.fija <- pull(x, var = fixed.acidity)
-MSE.Taylor <- (1/60) * sum((Acidez.fija - fitted)^2)
-MSE.Taylor
-validation_error <- mean((muestra$fixed.acidity - predicciones)^2)
-validation_error
-
-ajuste <- c("Modelo no paramétrico", "Modelo lineal")
-MSE <- c(MSE.Taylor, validation_error)
-comparacion <- data.frame(Ajuste = ajuste, MSE = MSE)
-```
-
-```{r warning=FALSE, include=F, paged.print=TRUE}
-ECM <- ggplot(data = comparacion, aes(x = reorder(x = Ajuste, X = MSE), 
-                                        y = MSE, color = Ajuste, 
-                                        label = round(MSE,2))) + 
-  geom_point(size = 10) + 
-  geom_text(color = "white", size = 2) + 
-  labs(x = "", y = "ECM") + 
-  coord_flip() + theme(legend.position = "none") +
-  labs(title = "") +
-  theme(plot.title = element_text(hjust = 0.5))
-```
-
-
-```{r fig.height=3, fig.width=6, message=FALSE, warning=FALSE}
-ECM
-```
-
-Después de graficar el modelo lineal, se procede a realizar la comparación entre el modelo de regresión no paramétrica y el modelo lineal:
-
-+ Respecto a la fuerza de la relación, se evalúa qué tan cerca se ajustan los datos a cada uno de los modelos para estimar la fuerza de la relación entre la variable predictora pH (X) y la variable de respuesta Acidez fija (Y). Se evidencia una relación fuerte en ambos casos, sin embargo la relación es notoriamente más significativa en el modelo de regresión no paramétrica, donde los puntos correspondientes a los vinos se adhieren mucho más a la línea de regresión ajustada  por lo cual el método no paramétrico modelará con mayor precisión nuestros datos.
-
-Esto se verifica mediante el calculo del error cuadrático medio, como se observa en la figura anterior, donde el modelo no paramétrico obtiene un $MSE=1.49$ y en contraste al $MSE=1.54$ obtenido para el modelo lineal, lo cual permite concluir que este seria el modelo que se ajusta mejor a nuestros datos. 
 
 # Actividad 2
 
 ## 1. Base de datos 
 
-El conjunto de datos empleados en el presente documento proviene del repositorio de la base de datos de aprendizaje automático de UCI. Los datos originales consisten en variables del vino portugués "Vinho Verde" y cuenta con 1599 observaciones de vino rojo y 4898 observaciones de vino blanco. Para cada uno se evalúa la calidad del vino (Calificación entre 0 y 10) y 11 variables químicas (cuantitativas), que son las siguientes: Acidez fija, Acidez volátil, Ácido cítrico, Azúcar residual, Cloruros, Dióxido de azufre libre, Dióxido de azufre total, Densidad , PH, sulfatos y alcohol. Específicamente se hará uso de las observaciones procedentes del vino rojo.
+El conjunto de datos empleados en el presente documento proviene de la estación Compartir durante el año 2019, esta proporciona datos de medición del Ozono en la ciudad de Cali.
 
 
 ```{r warning=F, include=F, paged.print=T}
@@ -371,27 +303,29 @@ x
 
 Se seleccionan cinco días consecutivos (de lunes a viernes) y se construye la curva de regresión para cada día, usando seis funciones de la base de cosenos.
 
+```{r fig.height=4, fig.width=8, warning=FALSE, include=T, paged.print=TRUE}
+par(mfrow=c(2,3))
+plot(x=x$hora[1:23],y=x$O3[1:23], xlab="Hora", ylab="O3", main="Dia 5")
+plot(x=x$hora[24:46],y=x$O3[24:46], xlab="Hora", ylab="O3", main="Dia 6")
+plot(x=x$hora[47:69],y=x$O3[47:69], xlab="Hora", ylab="O3", main="Dia 7")
+plot(x=x$hora[70:92],y=x$O3[70:92], xlab="Hora", ylab="O3", main="Dia 8")
+plot(x=x$hora[93:115],y=x$O3[93:115], xlab="Hora", ylab="O3", main="Dia 9")
+```
+
 ## 3. Datos funcionales
 
 Asuma que cada curva es la observación del día correspondiente. Así que ahora usted tiene cinco datos, uno para cada día. A este tipo de datos se les llama Datos Funcionales (Ramsay y Silverman 2005, Ferraty y Vieu 2006, Ramsay, Spencer y Hooker 2010, Ramsay, Wickham, Graves y Hooker 2011)
 
 ## 4. Representación gráfica
 
-Represente sus cinco datos funcionales en un solo gráfico. Luego, calcule e interprete la media y la desviación estándar funcionales de estos cinco datos. Represente esta curvas en el mismo gráfico.
+<center>
+![](Dias 2.png "Red neuronal"){height=400px} 
 
-Finalmente con el nuevo dataframe df podemos generar un gr�fico donde se puedan observar los datos reales (puntos) y los datos ajustados por el modelo de la variable $O^{3}$ vs hora_normada para cada uno de los d�as.
+Finalmente se genera un gráfico donde se observan los datos reales (puntos) y los datos ajustados por el modelo de la variable $O^{3}$ vs hora_normada para cada uno de los días 5,6,7,8 y 9.
 
-```{r warning=FALSE, include=T, paged.print=TRUE}
-par(mfrow=c(2,3))
-plot(x=x$hora[1:23],y=x$O3[1:23], xlab="Hora", ylab="O3", main="Dia 8")
-plot(x=x$hora[24:46],y=x$O3[24:46], xlab="Hora", ylab="O3", main="Dia 9")
-plot(x=x$hora[47:69],y=x$O3[47:69], xlab="Hora", ylab="O3", main="Dia 10")
-plot(x=x$hora[70:92],y=x$O3[70:92], xlab="Hora", ylab="O3", main="Dia 11")
-plot(x=x$hora[93:115],y=x$O3[93:115], xlab="Hora", ylab="O3", main="Dia 12")
-```
 
-A partir de la figura anterior, se tiene que, la estimaci�n del comportamiento de $O^{3}$ para los d�as 8,9,10,11 y 12 usando series de Furier con base de cosenos y con un $\lambda=3$, podr�amos decir que $\hat{\mu}_{3}$ es una buena aproximaci�n a $\mu$.
-
+A partir de la figura anterior, usando series de Furier con base de cosenos y con un $\lambda=7$, podríamos decir que $\mu=7$ es una buena aproximación a $\mu$, pero dado que $\lambda$ fue seleccionado de forma arbitraria no podemos asegurar que $\lambda=7$ es la mejor opción.
+ 
 # Bibliografía
 
 + Cortez, P., Cerdeira, A., Almeida, F., Matos, T., & Reis, J. (2009). Modeling wine preferences by data mining from physicochemical properties. Decision Support Systems, 47(4), 547-553.

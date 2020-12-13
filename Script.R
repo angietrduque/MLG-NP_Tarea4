@@ -23,7 +23,7 @@ suppressMessages(library(VGAM))
 #https://rpubs.com/juliantellez/Eleccion-de-lambda-regresion-no-parametrica
 #----------------------------------------------------------------------------------------#
 setwd("/Users/cesar.saavedra/Documents/GitHub/MLG-NP_Tarea4")
-setwd("C:/Users/Angie Rodríguez/Documents/GitHub/MLG-NP_Tarea4")
+setwd("C:/Users/Angie Rodr?guez/Documents/GitHub/MLG-NP_Tarea4")
 #----------------------------------------------------------------------------------------#
 Datos <- read.table("Datos.txt",header=T,sep = ",")
 Datos
@@ -141,6 +141,7 @@ ggplot()+ geom_point(data = x, aes(x = pH, y = fixed.acidity)) +
   labs(subtitle = expression(lambda==3))
 #----------------------------------------------------------------------------------------#
 library(readxl)
+library(xlsx)
 library(dplyr)
 library(lubridate)
 library(ggplot2)
@@ -167,6 +168,8 @@ x <- Datos2  %>%
   mutate(hora_normada = (2*hora - 1)/(2*24)) %>%
   mutate(dia = as.factor(dia))
 x
+
+write.xlsx(x, "Data.xlsx")
 #----------------------------------------------------------------------------------------#
 par(mfrow=c(2,3))
 plot(x=x$hora[1:23],y=x$O3[1:23], xlab="Hora", ylab="O3", main="Dia 8")
